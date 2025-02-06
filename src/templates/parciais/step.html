@@ -1,0 +1,36 @@
+
+<div class="bs-stepper">
+<div id="stepper-header" class="bs-stepper-header" role="tablist" style=" overflow: auto;overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none;  &::-webkit-scrollbar {display: none;}" >
+   <div class="step" data-target="#requester-part">
+        <button type="button" class="step-trigger" role="tab" aria-controls="requester-part" id="requester-part-trigger">
+            <span class="bs-stepper-circle">1</span>
+            <span class="bs-stepper-label">Dados Pessoais</span>
+        </button>
+    </div>
+    <div class="line"></div>
+    <div class="step" data-target="#reason-part">
+        <button type="button" class="step-trigger" role="tab" aria-controls="reason-part" id="reason-part-trigger">
+            <span class="bs-stepper-circle">2</span>
+            <span class="bs-stepper-label">Motivo</span>
+        </button>
+    </div>
+    <div class="line"></div>
+    <div class="step" data-target="#anex-part">
+        <button type="button" class="step-trigger" role="tab" aria-controls="anex-part" id="anex-part-trigger">
+            <span class="bs-stepper-circle">3</span>
+            <span class="bs-stepper-label">Anexos (Opcional)</span>
+        </button>
+    </div>
+    <div class="step" data-target="#finish-part">
+        <button type="button" class="step-trigger" role="tab" aria-controls="finish-part" id="finish-part-trigger">
+
+        </button>
+    </div>
+</div>
+<div class="bs-stepper-content containerForm">
+    {% include 'parciais/step_personaldata.html' %}
+    {% include 'parciais/step_reason.html' %}
+    {% include 'parciais/step_anex.html' %}
+    {% include 'parciais/step_finish.html' %}
+</div>
+

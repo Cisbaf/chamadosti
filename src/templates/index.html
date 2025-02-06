@@ -1,0 +1,35 @@
+  {% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <title>Título da página</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <script src="{% static 'js/bootstrap.min.js' %}"></script>
+      <script src="{% static 'js/new.request.js' %}"></script>
+      <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+      <script src="{% static 'js/jquery.mask.js' %}"></script>
+      <script src="{% static 'js/stepper.finish.js' %}"></script>
+      <link rel="stylesheet" href="{% static 'css/new.request.css' %}">
+      <link rel="stylesheet" href="{% static 'css/bs-stepper.min.css' %}">
+      <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  </head>
+  <body>
+    <nav class="navbar nav-edit">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">CISBAF</a>
+      </div>
+    </nav>
+    <br><br>
+    <div class="container" id="containerMessage"></div>
+     <div class="container containerMain">
+        <div class="containerInfo">
+            <h1>Suporte TI<br>Online</h1>
+            <p>Bem-vindo à nossa página de solicitação de suporte! Por favor, preencha os campos abaixo com o máximo de detalhes possível sobre sua solicitação. Isso nos ajudará a entender melhor sua situação e a fornecer uma solução rápida e eficaz. Agradecemos sua colaboração!</p>
+            <img src="{% static 'img/contact.jpg' %}" style="width: 400px;">
+        </div>
+        {% include 'parciais/step.html' %}
+    </div>
+
+  </body>
+</html>

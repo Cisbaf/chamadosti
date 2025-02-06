@@ -1,0 +1,21 @@
+{% load static %}
+
+<div id="reason-part" class="content" role="tabpanel" aria-labelledby="reason-part-trigger">          
+    <div class="containerReason">
+        <div class="form-group">
+            <label for="selectReason" class="form-label">Selecione o Motivo</label>
+            <select id="selectReason" class="form-select"></select>
+        </div>
+        <div id="containerComplement"></div>
+        <div class="form-group" id="containerDesc">
+            <label for="textDesc">Descrição do problema</label>
+            <textarea class="form-control" id="textDesc" rows="3"></textarea>
+        </div>
+        <div class="col-auto" style="margin-top: 20px;">
+            <button id="btnNext" type="submit" onclick="validateStepReason();" class="btn btn-primary">Próximo</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="{% static 'js/stepper.reason.js' %}"></script>

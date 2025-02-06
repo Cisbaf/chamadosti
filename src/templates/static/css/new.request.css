@@ -1,0 +1,61 @@
+.nav-edit {
+    background-color: #3f60c7;
+    a {
+        color: white;
+        font-weight: 800;
+        letter-spacing: 2px;
+        font-size: x-large;
+    }
+}
+
+.containerMain {
+    display: flex;
+    gap: 100px;
+}
+.containerInfo > h1 {
+    color: #3f60c7;
+    line-height: 1.167;
+    letter-spacing: 0em;
+    font-weight: 700;
+}
+.containerInfo > p {
+    max-width: 500px;
+}
+.containerInputDisable {
+    display: none;
+}
+.containerReason {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+}
+.containerForm {
+ 
+}
+
+#containerMessage {
+    position: fixed; /* Fixa a posição na tela */
+    top: 30px; /* Ajusta a distância do topo */
+    right: 10px; /* Ajusta a distância da borda direita */
+    z-index: 1050; /* Garante que o alerta fique acima de outros elementos */
+    width: auto; /* Ajusta o tamanho automaticamente */
+    max-width: 900px; /* Limita o tamanho máximo */
+    pointer-events: none; /* Impede que interfira com cliques em outros elementos */
+}
+
+.fade-in {
+    opacity: 0; /* Começa invisível */
+    transition: opacity 0.5s ease-in-out; /* Transição suave */
+}
+.fade-in.show {
+    opacity: 1; /* Torna visível */
+}
+.fade-out {
+    opacity: 0; /* Desaparece com transição */
+    transition: opacity 0.5s ease-in-out; /* Transição suave */
+}
+
+.list-group-flex {
+    display: flex;
+    justify-content: space-between;
+}

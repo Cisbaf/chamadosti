@@ -1,0 +1,16 @@
+{% load static %}
+
+<div id="anex-part" class="content" role="tabpanel" aria-labelledby="anex-part-trigger">
+    <p>Atenção! O limite máximo é de 2 arquivos para ser enviado e deverão ser selecionados juntos! Os arquivos juntos não poderão passar de 2MB!!</p>
+    <div class="mb-3">
+        <label for="inputFile" class="form-label">Carregar arquivos</label>
+        <input class="form-control" type="file" id="inputFile">
+    </div>
+    <ul id="containerList" class="list-group"></ul>
+    <div class="col-auto" style="margin-top: 20px;">
+        <button id="btnNext" type="submit" onclick="FinishRequest();" class="btn btn-primary">Finalizar Chamado</button>
+    </div>
+
+</div>
+
+<script src="{% static 'js/stepper.anex.js' %}"></script>

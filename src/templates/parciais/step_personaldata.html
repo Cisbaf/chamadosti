@@ -1,0 +1,33 @@
+{% load static %}
+
+<div id="requester-part" class="content" role="tabpanel" aria-labelledby="requester-part-trigger">          
+    <div class="row g-3">
+        <div class="col-auto" name="containerInputs">
+            <label for="inputName" class="form-label">Nome Completo</label>
+            <input type="text" class="form-control" id="inputName">
+        </div>
+        <div class="col-auto">
+            <label for="inputPhone" class="form-label">Numero Telefone</label>
+            <input type="text" class="form-control" id="inputPhone" aria-describedby="phoneHelp">
+            <div id="phoneHelp" class="form-text">Para começar preencha o seu número celular</div>
+        </div>
+    </div>
+    <div class="row g-3">
+        <div class="col-auto" name="containerInputs">
+            <label for="inputLocation" class="form-label">Selecione o Local</label>
+            <select id="selectLocation" class="form-select">
+                <option selected>Selecione um valor</option>
+            </select>
+        </div>
+        <div class="col-auto" id="containerBases" style="display: none;">
+            <label for="inputLocation" class="form-label">Selecione o Local</label>
+            <select id="selectBases" class="form-select"></select>
+        </div>
+    </div>
+    <div class="col-auto" name="containerInputs" style="margin-top: 20px;">
+        <button id="btnNext" type="submit" onclick="validateStepDp();" class="btn btn-primary">Próximo</button>
+    </div>
+
+</div>
+
+<script src="{% static 'js/stepper.datapersonal.js' %}"></script>

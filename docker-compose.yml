@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  app-chamados:
+    build: .
+    command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}  # Pegando a porta do .env
+    ports:
+      - "${DJANGO_PORT}:${DJANGO_PORT}"
+    depends_on:
+      - redis-app-chamados
+    networks:
+      - network-apps
+    env_file:
+      - .env  # Adicionei a linha aqui para carregar variáveis do .env
+
+  selenium-app-chamados:
+    image: selenium/standalone-chrome:latest
+    volumes:
+      - /dev/shm:/dev/shm
+    networks:
+      - network-apps
+
+  worker-app-chamados:
+    build: .
+    command: celery -A app worker --loglevel=info
+    volumes:
+      - .:/django-project
+    depends_on:
+      - redis-app-chamados
+    networks:
+      - network-apps
+    env_file:
+      - .env  # Carregar variáveis de ambiente aqui também
+
+  flower-app-chamados:
+    build: .
+    command: celery -A app flower --port=5555 --db=sqlite:///flower.db
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis-app-chamados
+    networks:
+      - network-apps
+    env_file:
+      - .env  # Carregar variáveis de ambiente aqui também
+
+  redis-app-chamados:
+    image: redis:latest
+    networks:
+      - network-apps
+
+networks:
+  network-apps:
+    driver: bridge
