@@ -37,9 +37,9 @@ ALLOWED_HOSTS = ["*"]
 # Configurações adicionais do Celery
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'redis://redis-app-chamados:6379/0'  # ou 'redis://localhost:6379/0' para local
+# CELERY_RESULT_BACKEND = 'redis://redis-app-chamados:6379/0'  # ou 'redis://localhost:6379/0' para local
 CELERY_TIMEZONE = 'UTC'
-# CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_BACKEND = 'django-db'
 CELERY_BEAT_SCHEDULE = {
     'task-name': {
         'task': 'path.to.task',

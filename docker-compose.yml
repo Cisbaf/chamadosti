@@ -3,7 +3,7 @@ version: '3'
 services:
   app-chamados:
     build: .
-    command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}  # Pegando a porta do .env
+    command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}  
     ports:
       - "${DJANGO_PORT}:${DJANGO_PORT}"
     depends_on:
@@ -11,26 +11,28 @@ services:
     networks:
       - network-apps
     env_file:
-      - .env  # Adicionei a linha aqui para carregar variáveis do .env
-
-  selenium-app-chamados:
-    image: selenium/standalone-chrome:latest
+      - .env  
     volumes:
-      - /dev/shm:/dev/shm
-    networks:
-      - network-apps
-
+      - .:/django-project
+      - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
+  selenium-app-chamados:
+      image: selenium/standalone-chrome:latest
+      volumes:
+        - /dev/shm:/dev/shm
+      networks:
+        - network-apps
   worker-app-chamados:
     build: .
     command: celery -A app worker --loglevel=info
     volumes:
       - .:/django-project
+      - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
     depends_on:
       - redis-app-chamados
     networks:
       - network-apps
     env_file:
-      - .env  # Carregar variáveis de ambiente aqui também
+      - .env  
 
   flower-app-chamados:
     build: .
@@ -42,7 +44,10 @@ services:
     networks:
       - network-apps
     env_file:
-      - .env  # Carregar variáveis de ambiente aqui também
+      - .env  
+    volumes:
+      - .:/django-project
+      - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
 
   redis-app-chamados:
     image: redis:latest

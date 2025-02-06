@@ -5,7 +5,7 @@ from celery import Celery
 # Configuração padrão para o Celery usar as configurações do Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'app.settings')
 
-app = Celery('app', broker=os.getenv("CELERY_BROKER_URL"))
+app = Celery('app', broker='redis://localhost:6380/0')
 
 app.conf.update(
     result_extended=True
