@@ -20,7 +20,7 @@ def task_notification_wpp(self, number: str, message: str):
     }
     try:
         response = requests.post(API_NOTIFICATION_URL, json=data)
-        response_message = response.json()['msg']
+        response_message = response.json()['message']
         if response.status_code == 200:
             return response_message
         else:
