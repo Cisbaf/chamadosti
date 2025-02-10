@@ -15,7 +15,8 @@ def task_notification_wpp(self, number: str, message: str):
     API_NOTIFICATION_URL = os.getenv("API_NOTIFICATION_URL")
     data = {
         "number": number,
-        "message": message
+        "message": message,
+        "is_group": False,
     }
     try:
         response = requests.post(API_NOTIFICATION_URL, json=data)
