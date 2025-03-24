@@ -26,10 +26,11 @@ class GLPIFunctions:
         self.css_iframe = 'tox-edit-area__iframe'
         self.name_input = '_uploader_filename[]'
         self.xpath_btn = '//*[@id="itil-form"]/div/div[4]/button'
+        self.glpi_url = os.getenv("GLPI_URL")
 
     def login(self, user: str = 'Portal Chamado', passw: str = 'Cisbaf2023'):
         try:
-            self.chrome.driver.get("http://192.168.1.235/index.php?noAUTO=1")
+            self.chrome.driver.get(self.glpi_url + "/index.php?noAUTO=1")
             self.chrome.set_value(self.xpath_login, By.XPATH, user)
             self.chrome.set_value(self.xpath_pass, By.XPATH, passw, True)
             if self.chrome.driver.title != "Home - GLPI": # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! warning
@@ -39,7 +40,7 @@ class GLPIFunctions:
         
     def open_request(self, protocolo: str, datas: DatasRegister, archives: List[Archive] = None):
         try:
-            self.chrome.driver.get("http://192.168.1.235/front/ticket.form.php")
+            self.chrome.driver.get(self.glpi_url + "/front/ticket.form.php")
             self.chrome.set_value(self.name_title_chamado, By.NAME, f'{datas.reason} - {protocolo}')
             iframe = self.chrome.get_element(self.css_iframe, By.CLASS_NAME)
             self.chrome.driver.switch_to.frame(iframe)

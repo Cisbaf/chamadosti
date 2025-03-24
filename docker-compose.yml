@@ -9,7 +9,8 @@ services:
     depends_on:
       - redis-app-chamados
     networks:
-      - network-apps
+      - network-chamadosti
+    restart: always
     env_file:
       - .env  
     volumes:
@@ -17,32 +18,35 @@ services:
       - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
   selenium-app-chamados:
       image: selenium/standalone-chrome:latest
+      restart: always
       volumes:
         - /dev/shm:/dev/shm
       networks:
-        - network-apps
+        - network-chamadosti
   worker-app-chamados:
     build: .
     command: celery -A app worker --loglevel=info
+    restart: always
     volumes:
       - .:/django-project
       - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
     depends_on:
       - redis-app-chamados
     networks:
-      - network-apps
+      - network-chamadosti
     env_file:
       - .env  
 
   flower-app-chamados:
     build: .
     command: celery -A app flower --port=5555 --db=sqlite:///flower.db
+    restart: always
     ports:
       - "5555:5555"
     depends_on:
       - redis-app-chamados
     networks:
-      - network-apps
+      - network-chamadosti
     env_file:
       - .env  
     volumes:
@@ -51,9 +55,10 @@ services:
 
   redis-app-chamados:
     image: redis:latest
+    restart: always
     networks:
-      - network-apps
+      - network-chamadosti
 
 networks:
-  network-apps:
+  network-chamadosti:
     driver: bridge

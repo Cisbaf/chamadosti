@@ -11,16 +11,16 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 @shared_task(bind=True, max_retries=10, retry_delay=30)
-def task_notification_wpp(self, number: str, message: str):
+def task_notification_wpp(self, number: str, message: str, is_group=False):
     API_NOTIFICATION_URL = os.getenv("API_NOTIFICATION_URL")
     data = {
-        "number": number,
+        "to": number,
         "message": message,
-        "is_group": False,
+        "is_group": is_group,
     }
     try:
         response = requests.post(API_NOTIFICATION_URL, json=data)
-        response_message = response.json()['message']
+        response_message = response.json()
         if response.status_code == 200:
             return response_message
         else:
@@ -49,7 +49,8 @@ def glpi_register(self, data: dict, archives: dict):
         # Enviar notificações
         task_notification_wpp.delay(
             CONTACT_NOTIFICATION,
-            make_message_group(data_register, protocol, len(files))
+            make_message_group(data_register, protocol, len(files)),
+            True
         )
         task_notification_wpp.delay(
             data_register.contact, 
