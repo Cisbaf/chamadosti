@@ -28,7 +28,7 @@ def task_notification_wpp(self, number: str, message: str, is_group=False):
     except ChildProcessError as exc:
         self.retry(exc=exc)
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
 def glpi_register(self, data: dict, archives: dict):
     CONTACT_NOTIFICATION = os.getenv("CONTACT_NOTIFICATION")
     driver = ChromeDriverController(hadless=True, cache=False)
