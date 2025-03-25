@@ -6,11 +6,9 @@ from helpers.form_register import validate_form
 from helpers.messages import make_message_group
 from helpers.protocol import generate_protocol
 from helpers.security_imgs import register_images
-from dotenv import load_dotenv
+from requests.exceptions import ConnectionError, ConnectTimeout
 
-load_dotenv(override=True)
-
-@shared_task(bind=True, max_retries=10, retry_delay=30)
+@shared_task(bind=True, max_retries=30, retry_delay=30)
 def task_notification_wpp(self, number: str, message: str, is_group=False):
     API_NOTIFICATION_URL = os.getenv("API_NOTIFICATION_URL")
     data = {
@@ -25,7 +23,9 @@ def task_notification_wpp(self, number: str, message: str, is_group=False):
             return response_message
         else:
             raise Exception(response_message)
-    except Exception as exc:
+    except ConnectionError as exc:
+        self.retry(exc=exc)
+    except ChildProcessError as exc:
         self.retry(exc=exc)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=10)
