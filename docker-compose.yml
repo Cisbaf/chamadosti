@@ -1,22 +1,25 @@
 version: '3'
 
 services:
-  app-chamados:
+  chamados-ti:
+    container_name: chamadosti-app
     build: .
-    command: python manage.py runserver 0.0.0.0:${DJANGO_PORT}  
+    command: python manage.py runserver 0.0.0.0:8000  
     ports:
-      - "${DJANGO_PORT}:${DJANGO_PORT}"
+      - "${CHAMADOS_TI}:8000"
     depends_on:
-      - redis-app-chamados
-    networks:
-      - network-chamadosti
+      - redis-chamadosti
     restart: always
     env_file:
       - .env  
     volumes:
       - .:/django-project
       - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
-  selenium-app-chamados:
+    networks:
+      - network-chamadosti
+
+  selenium-chamadosti:
+      container_name: selenium-chamadosti
       image: selenium/standalone-chrome:latest
       restart: always
       volumes:
@@ -30,30 +33,32 @@ services:
     volumes:
       - .:/django-project
       - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
+    env_file:
+      - .env
     depends_on:
-      - redis-app-chamados
+      - redis-chamadosti
     networks:
       - network-chamadosti
-    env_file:
-      - .env  
 
-  flower-app-chamados:
+  flower:
+    container_name: flower-chamadosti
     build: .
     command: celery -A app flower --port=5555 --db=sqlite:///flower.db
     restart: always
     ports:
       - "5555:5555"
-    depends_on:
-      - redis-app-chamados
-    networks:
-      - network-chamadosti
     env_file:
       - .env  
     volumes:
       - .:/django-project
       - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
+    depends_on:
+      - redis-chamadosti
+    networks:
+      - network-chamadosti
 
-  redis-app-chamados:
+  redis-chamadosti:
+    container_name: redis-chamadosti
     image: redis:latest
     restart: always
     networks:
@@ -62,3 +67,4 @@ services:
 networks:
   network-chamadosti:
     driver: bridge
+  

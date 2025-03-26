@@ -17,7 +17,7 @@ class ChromeDriverController:
         if cache:
             chrome_options.add_argument('--user-data-dir=~/.config/google-chrome')
         self.driver = webdriver.Remote(
-                command_executor='http://selenium-app-chamados:4444/wd/hub',
+                command_executor='http://selenium-chamadosti:4444/wd/hub',
                 options=chrome_options
         )
 
