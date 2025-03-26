@@ -6,7 +6,7 @@ services:
     build: .
     command: python manage.py runserver 0.0.0.0:8000  
     ports:
-      - "${CHAMADOS_TI}:8000"
+      - "${CHAMADOSTI_PORT}:8000"
     depends_on:
       - redis-chamadosti
     restart: always
@@ -17,6 +17,7 @@ services:
       - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
     networks:
       - network-chamadosti
+      - cisbaf_network_apps
 
   selenium-chamadosti:
       container_name: selenium-chamadosti
@@ -26,7 +27,7 @@ services:
         - /dev/shm:/dev/shm
       networks:
         - network-chamadosti
-  worker-app-chamados:
+  worker-chamadosti:
     build: .
     command: celery -A app worker --loglevel=info
     restart: always
@@ -39,6 +40,7 @@ services:
       - redis-chamadosti
     networks:
       - network-chamadosti
+      - cisbaf_network_apps
 
   flower:
     container_name: flower-chamadosti
@@ -67,4 +69,5 @@ services:
 networks:
   network-chamadosti:
     driver: bridge
-  
+  cisbaf_network_apps:
+    external: true
