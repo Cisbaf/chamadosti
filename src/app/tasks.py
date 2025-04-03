@@ -31,9 +31,9 @@ def task_notification_wpp(self, number: str, message: str, is_group=False):
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
 def glpi_register(self, data: dict, archives: dict):
     CONTACT_NOTIFICATION = os.getenv("CONTACT_NOTIFICATION")
-    driver = ChromeDriverController(hadless=True, cache=False)
     try:
         # Validação e registro
+        driver = ChromeDriverController(cache=False)
         data_register = validate_form(data)
         protocol = generate_protocol(8)
         files = []

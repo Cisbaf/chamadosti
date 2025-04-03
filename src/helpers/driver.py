@@ -10,17 +10,20 @@ from selenium.webdriver.common.alert import Alert
 
 class ChromeDriverController:
 
-    def __init__(self, hadless=False, cache=False) -> None:
+    def __init__(self, headless=False, cache=False) -> None:
         chrome_options = Options()
-        if hadless:
+        chrome_options.add_argument("--no-sandbox")  # Evita problemas de permissão
+        chrome_options.add_argument("--disable-dev-shm-usage")  # Usa menos memória compartilhada
+        if headless:
             chrome_options.add_argument("--headless=new")
         if cache:
-            chrome_options.add_argument('--user-data-dir=~/.config/google-chrome')
-        self.driver = webdriver.Remote(
-                command_executor='http://selenium-chamadosti:4444/wd/hub',
-                options=chrome_options
-        )
+            chrome_options.add_argument('--user-data-dir=/tmp/chrome-user-data')  # Define um diretório válido
 
+        self.driver = webdriver.Remote(
+            command_executor='http://selenium-chamadosti:4444/wd/hub',
+            options=chrome_options
+        )
+        
     def get_element(self, element_search: str, type: None, time=30):
         element = WebDriverWait(self.driver, time).until(
             EC.visibility_of_element_located((type, element_search))
