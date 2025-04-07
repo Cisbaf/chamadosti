@@ -19,6 +19,7 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://chamadosti.cisbaf.org.br', '
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+X_FRAME_OPTIONS = 'ALLOWALL'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-47ag9^3@parc$r62f%r3c+2+3-g@9ns#^aq0f-vca2$-r6xvce'
@@ -87,17 +88,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'app.wsgi.application'
 
+print("tem que ir???", os.getenv("MYSQL_HOST"))
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv("MYSQL_DATABASE"),
+        'USER': os.getenv("MYSQL_USER"),
+        'PASSWORD': os.getenv("MYSQL_PASSWORD"),
+        'HOST': os.getenv("MYSQL_HOST"),
+        'PORT': os.getenv("MYSQL_PORT"),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

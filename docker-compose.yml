@@ -3,21 +3,16 @@ services:
   chamados-ti:
     container_name: chamadosti-app
     build: .
-    command: python manage.py runserver 0.0.0.0:8000  
     ports:
       - "${CHAMADOSTI_PORT}:8000"
     depends_on:
       - redis-chamadosti
     restart: always
     env_file:
-      - .env  
-    volumes:
-      - .:/django-project
-      - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
+      - .env
     networks:
       - network-chamadosti
-      - cisbaf_network_apps
-
+    
   selenium-chamadosti:
       container_name: selenium-chamadosti
       image: selenium/standalone-chrome:latest
@@ -32,29 +27,22 @@ services:
     build: .
     command: celery -A app worker --loglevel=info
     restart: always
-    volumes:
-      - .:/django-project
-      - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
     env_file:
       - .env
     depends_on:
       - redis-chamadosti
     networks:
       - network-chamadosti
-      - cisbaf_network_apps
 
   flower:
     container_name: flower-chamadosti
     build: .
-    command: celery -A app flower --port=5555 --db=sqlite:///flower.db
+    command: celery -A app flower --port=5555
     restart: always
     ports:
       - "5555:5555"
     env_file:
       - .env  
-    volumes:
-      - .:/django-project
-      - ./db.sqlite3:/django-project/db.sqlite3  # Monta o banco de dados
     depends_on:
       - redis-chamadosti
     networks:
@@ -70,5 +58,3 @@ services:
 networks:
   network-chamadosti:
     driver: bridge
-  cisbaf_network_apps:
-    external: true

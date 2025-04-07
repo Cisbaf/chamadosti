@@ -2,16 +2,16 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED 1
 
-WORKDIR /django-project
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libpq-dev pkg-config default-libmysqlclient-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /django-project
+WORKDIR /app
 
-COPY /src /django-project/src
+COPY /src .
 
 RUN pip install -r requirements.txt
 
-WORKDIR /django-project/src
 
-RUN python manage.py makemigrations
-
-RUN python manage.py migrate
+CMD [ "python", "manage.py", "runserver", "0.0.0.0:8000", "--noreload" ]
