@@ -9,7 +9,7 @@ services:
       - redis-chamadosti
     restart: always
     env_file:
-      - .env
+      - /etc/cisbaf-setup/envs/.env-chamadosti 
     networks:
       - network-chamadosti
     
