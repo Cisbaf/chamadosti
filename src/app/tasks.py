@@ -7,6 +7,7 @@ from helpers.messages import make_message_group
 from helpers.protocol import generate_protocol
 from helpers.security_imgs import register_images
 from requests.exceptions import ConnectionError, ConnectTimeout
+from selenium.common.exceptions import WebDriverException
 
 @shared_task(bind=True, max_retries=30, retry_delay=30)
 def task_notification_wpp(self, number: str, message: str, is_group=False):
@@ -28,24 +29,25 @@ def task_notification_wpp(self, number: str, message: str, is_group=False):
     except ChildProcessError as exc:
         self.retry(exc=exc)
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+@shared_task(bind=True, max_retries=30, default_retry_delay=30)
 def glpi_register(self, data: dict, archives: dict):
     CONTACT_NOTIFICATION = os.getenv("CONTACT_NOTIFICATION")
+    driver = None
     try:
-        # Validação e registro
         driver = ChromeDriverController(cache=False)
         data_register = validate_form(data)
         protocol = generate_protocol(8)
         files = []
+
         if archives:
             for name, file in archives.items():
-                files.append(Archive(
-                    name, file
-                ))
+                files.append(Archive(name, file))
             register_images(self.request.id, files)
+
         glpi = GLPIFunctions(driver)
         glpi.login()
         glpi.open_request(protocol, data_register, files)
+
         # Enviar notificações
         task_notification_wpp.delay(
             CONTACT_NOTIFICATION,
@@ -53,17 +55,32 @@ def glpi_register(self, data: dict, archives: dict):
             True
         )
         task_notification_wpp.delay(
-            data_register.contact, 
+            data_register.contact,
             f"O seu chamado foi aberto, caso você não tenha retorno, envie o protocolo {protocol} para a equipe de TI"
         )
+
     except Exception as e:
-        try:
-            self.retry(exc=e)
-        except MaxRetriesExceededError:
-            # Notificar falha após exceder o número de tentativas
+        should_retry = False
+
+        if isinstance(e, WebDriverException):
+            should_retry = True
+        elif "net::ERR_ADDRESS_UNREACHABLE" in str(e):
+            should_retry = True
+
+        if should_retry:
+            try:
+                self.retry(exc=e)
+            except MaxRetriesExceededError:
+                task_notification_wpp.delay(
+                    CONTACT_NOTIFICATION,
+                    f"Não foi possível registrar o chamado no GLPI. Task ID: {self.request.id}"
+                )
+        else:
+            # Outros erros que não devem dar retry, mas podem ser logados
             task_notification_wpp.delay(
-                CONTACT_NOTIFICATION, 
-                f"Não foi possível registrar o chamado no GLPI. Task ID: {self.request.id}"
+                CONTACT_NOTIFICATION,
+                f"Ocorreu um erro inesperado na task GLPI. Task ID: {self.request.id}\nErro: {str(e)}"
             )
     finally:
-        driver.driver.quit()
+        if driver:
+            driver.driver.quit()
