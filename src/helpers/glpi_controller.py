@@ -3,6 +3,7 @@ from typing import List
 from selenium.webdriver.common.by import By
 from .driver import ChromeDriverController
 from dataclasses import dataclass, asdict
+import time
 
 @dataclass
 class Archive:
@@ -33,7 +34,8 @@ class GLPIFunctions:
             self.chrome.driver.get(self.glpi_url + "/index.php?noAUTO=1")
             self.chrome.set_value(self.xpath_login, By.XPATH, user)
             self.chrome.set_value(self.xpath_pass, By.XPATH, passw, True)
-            if self.chrome.driver.title != "Home - GLPI": # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! warning
+            time.sleep(3)
+            if not "Home" in self.chrome.driver.title:
                 raise Exception("Usuário ou senha invalida")
         except Exception as e:
             raise Exception("ERROR LOGIN - " + str(e))
