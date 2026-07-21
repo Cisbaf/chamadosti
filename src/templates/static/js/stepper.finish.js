@@ -30,12 +30,23 @@ function SendRequest() {
     })
 }
 
+let isFinishing = false;
+
 function FinishRequest() {
+    if (isFinishing) return;
+    isFinishing = true;
+
+    const btnNext = document.getElementById("btnNext");
+    if (btnNext) btnNext.disabled = true;
+
     SendRequest().then(()=>{
         RegisterMessage("success", "Chamado Finalizado com sucesso!");
         MakeFinishMessage(true);
     }).catch(()=>{
         RegisterMessage("danger", "Ocorreu um erro ao Finalizar o chamado!");
         MakeFinishMessage(false);
+    }).finally(()=>{
+        isFinishing = false;
+        if (btnNext) btnNext.disabled = false;
     })
 }
