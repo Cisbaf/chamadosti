@@ -32,12 +32,11 @@ function SendRequest() {
 
 let isFinishing = false;
 
-function FinishRequest() {
+function FinishRequest(btn) {
     if (isFinishing) return;
     isFinishing = true;
 
-    const btnNext = document.getElementById("btnNext");
-    if (btnNext) btnNext.disabled = true;
+    if (btn) btn.disabled = true;
 
     SendRequest().then(()=>{
         RegisterMessage("success", "Chamado Finalizado com sucesso!");
@@ -47,6 +46,6 @@ function FinishRequest() {
         MakeFinishMessage(false);
     }).finally(()=>{
         isFinishing = false;
-        if (btnNext) btnNext.disabled = false;
+        if (btn) btn.disabled = false;
     })
 }
