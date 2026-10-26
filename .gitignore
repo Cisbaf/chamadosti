@@ -522,3 +522,17 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/vs,django
+
+# chamadosTI
+# Segredos e configuração local (tokens do GLPI, SECRET_KEY, senhas): nunca no git
+.env
+.env.*
+!.env.example
+# Estáticos gerados no build (collectstatic) e bancos locais de teste
+src/static/
+*.sqlite3
+# Ferramentas e logs do ambiente de teste (contêm telefones e nomes de teste)
+dev/
+*.log
+# Ambiente virtual local
+.venv/

@@ -1,35 +1,221 @@
-  {% load static %}
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <title>Chamados TI</title>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <script src="{% static 'js/bootstrap.min.js' %}"></script>
-      <script src="{% static 'js/new.request.js' %}"></script>
-      <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-      <script src="{% static 'js/jquery.mask.js' %}"></script>
-      <script src="{% static 'js/stepper.finish.js' %}?v=2"></script>
-      <link rel="stylesheet" href="{% static 'css/new.request.css' %}">
-      <link rel="stylesheet" href="{% static 'css/bs-stepper.min.css' %}">
-      <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-  </head>
-  <body>
-    <nav class="navbar nav-edit">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="/">CISBAF</a>
-      </div>
-    </nav>
-    <br><br>
-    <div class="container" id="containerMessage"></div>
-     <div class="container containerMain">
-        <div class="containerInfo">
-            <h1>Suporte TI<br>Online</h1>
-            <p>Bem-vindo à nossa página de solicitação de suporte! Por favor, preencha os campos abaixo com o máximo de detalhes possível sobre sua solicitação. Isso nos ajudará a entender melhor sua situação e a fornecer uma solução rápida e eficaz. Agradecemos sua colaboração!</p>
-            <img src="{% static 'img/contact.jpg' %}" style="width: 400px;">
-        </div>
-        {% include 'parciais/step.html' %}
-    </div>
+{% load static %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suporte TI Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/chamado.css' %}">
+</head>
+<body>
+<div class="pagina">
 
-  </body>
+  <header class="topo">
+    <a href="/" class="topo-logo" aria-label="Página inicial">
+      <img class="logo-grande" src="{% static 'img/CISBAF_HORIZONTAL_LOGO.png' %}" alt="Logo Cisbaf" height="35">
+      <img class="logo-simples" src="{% static 'img/LogoCisbafSimples.png' %}" alt="Logo Cisbaf" height="36">
+    </a>
+    <span class="topo-divisor"></span>
+    <span class="topo-titulo">Canal de <span>Suporte de TI</span></span>
+  </header>
+
+  <div class="corpo">
+    <aside class="lateral">
+      <h1>Suporte TI Online</h1>
+      <p>Bem-vindo à nossa página de solicitação de suporte! Por favor, preencha os campos abaixo com o máximo de detalhes possível sobre sua solicitação. Isso nos ajudará a entender melhor sua situação e a fornecer uma solução rápida e eficaz. Agradecemos sua colaboração!</p>
+      <div class="lateral-imagem">
+        <img src="{% static 'img/contact.jpg' %}" alt="Ilustração de uma pessoa usando o computador para pedir suporte" width="900" height="900">
+      </div>
+    </aside>
+
+    <main class="cartao" id="cartao">
+
+      <div id="formulario">
+        <ol class="etapas" aria-label="Etapas">
+          <li data-etapa="1"><div class="etapa-linha"><i class="linha antes"></i><span class="bolinha"></span><i class="linha depois"></i></div><span class="etapa-nome">Seus dados</span></li>
+          <li data-etapa="2"><div class="etapa-linha"><i class="linha antes"></i><span class="bolinha"></span><i class="linha depois"></i></div><span class="etapa-nome">Para quem</span></li>
+          <li data-etapa="3"><div class="etapa-linha"><i class="linha antes"></i><span class="bolinha"></span><i class="linha depois"></i></div><span class="etapa-nome">O problema</span></li>
+          <li data-etapa="4"><div class="etapa-linha"><i class="linha antes"></i><span class="bolinha"></span><i class="linha depois"></i></div><span class="etapa-nome">Anexos</span></li>
+        </ol>
+
+        <!-- Passo 1 -->
+        <section class="passo" data-passo="1">
+          <div class="passo-cab">
+            <h2 tabindex="-1">Seus dados</h2>
+            <p>Comece pelo celular. Se ele já estiver cadastrado, preenchemos o resto.</p>
+          </div>
+          <div class="campo">
+            <label for="f-tel">Celular (WhatsApp)</label>
+            <input id="f-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="(21) 99999-9999" maxlength="15">
+            <div class="aviso-ok" id="conhecido" hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              <span>Número cadastrado: preenchemos nome e localização.</span>
+            </div>
+          </div>
+          <div class="campo">
+            <label for="f-nome">Nome completo</label>
+            <input id="f-nome" type="text" autocomplete="name" maxlength="100">
+          </div>
+          <div class="campo">
+            <label for="f-loc1">Localização</label>
+            <div class="loc" id="loc1"></div>
+          </div>
+        </section>
+
+        <!-- Passo 2 -->
+        <section class="passo" data-passo="2" hidden>
+          <div class="passo-cab">
+            <h2 tabindex="-1">Para quem é o chamado?</h2>
+            <p>Se for para você, é só continuar.</p>
+          </div>
+          <label class="cartao-check">
+            <input type="checkbox" id="f-terceiro">
+            <span>
+              <strong>O chamado é para outra pessoa</strong>
+              <small>Marque se você está abrindo em nome de alguém de outro local.</small>
+            </span>
+          </label>
+          <div class="nota" id="para-mim">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+            <span>O chamado será aberto para <strong id="pm-nome"></strong> em <strong id="pm-local"></strong>.</span>
+          </div>
+          <div class="grupo" id="outra" hidden>
+            <div class="campo">
+              <label for="f-tel3">Celular da outra pessoa</label>
+              <input id="f-tel3" type="tel" inputmode="numeric" placeholder="(21) 99999-9999" maxlength="15">
+              <div class="aviso-ok" id="conhecido3" hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span></span>
+              </div>
+            </div>
+            <div class="campo">
+              <label for="f-nome3">Nome da outra pessoa</label>
+              <input id="f-nome3" type="text" maxlength="100">
+            </div>
+            <div class="campo">
+              <label for="f-loc2">Localização da outra pessoa</label>
+              <div class="loc" id="loc2"></div>
+              <span class="ajuda">O chamado fica registrado na localização desta pessoa.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Passo 3 -->
+        <section class="passo" data-passo="3" hidden>
+          <div class="passo-cab">
+            <h2 tabindex="-1">O problema</h2>
+            <p>Quanto mais detalhes, mais rápido conseguimos ajudar.</p>
+          </div>
+          <div class="campo">
+            <label for="f-motivo">Motivo</label>
+            <select id="f-motivo">
+              <option value="">Selecione o motivo</option>
+              {% for m in motivos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+            </select>
+          </div>
+          <fieldset class="opcoes" id="subs" hidden>
+            <legend id="subs-titulo"></legend>
+            <div id="subs-lista"></div>
+          </fieldset>
+          <div class="grupo grupo-cinza" id="campos-login" hidden>
+            <span class="grupo-titulo">Dados de quem vai receber o acesso</span>
+            <div id="campos-lista"></div>
+          </div>
+          <div class="campo" id="campo-desc">
+            <label for="f-desc">Descrição do problema</label>
+            <textarea id="f-desc" rows="5" maxlength="5000" placeholder="O que aconteceu? Desde quando? Aparece alguma mensagem?"></textarea>
+          </div>
+        </section>
+
+        <!-- Passo 4 -->
+        <section class="passo" data-passo="4" hidden>
+          <div class="passo-cab">
+            <h2 tabindex="-1">Anexos <small>(opcional)</small></h2>
+            <p>Uma foto da tela ou do equipamento ajuda muito.</p>
+          </div>
+          <div id="anexos-lista"></div>
+          <input type="file" id="f-arquivo" accept="image/jpeg,image/png,image/gif,application/pdf,.jpg,.jpeg,.png,.gif,.pdf" hidden>
+          <button type="button" class="btn-anexo" id="btn-anexo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+            <span>Adicionar foto ou arquivo</span>
+          </button>
+          <span class="ajuda" id="anexos-uso"></span>
+          <div class="resumo">
+            <span class="resumo-titulo">Resumo</span>
+            <span><strong>Para:</strong> <span id="rs-para"></span></span>
+            <span><strong>Local:</strong> <span id="rs-local"></span></span>
+            <span><strong>Motivo:</strong> <span id="rs-motivo"></span></span>
+          </div>
+        </section>
+
+        <div class="erro" id="erro" role="alert" hidden></div>
+
+        <div class="botoes">
+          <button type="button" class="btn-voltar" id="btn-voltar" hidden>Voltar</button>
+          <button type="button" class="btn-principal" id="btn-proximo">Próximo</button>
+          <button type="button" class="btn-principal" id="btn-enviar" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+            <span>Abrir chamado</span>
+          </button>
+        </div>
+      </div>
+
+      <section class="resultado" id="tela-criado" hidden>
+        <div class="selo selo-ok"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div>
+          <h2 tabindex="-1">Chamado aberto!</h2>
+          <p>A equipe de TI já recebeu o seu pedido.</p>
+        </div>
+        <div class="numero">
+          <span>Número do chamado</span>
+          <strong id="numero-chamado">0</strong>
+        </div>
+        <p class="resultado-texto">Enviamos o número para o WhatsApp <strong id="criado-tel"></strong>. Use esse número se precisar falar com a TI.</p>
+        <p class="resultado-texto" id="criado-anexo" hidden>Algum anexo não chegou ao chamado. A TI foi avisada e pode pedir o arquivo de novo.</p>
+        <button type="button" class="btn-principal btn-largo" id="btn-novo">Abrir outro chamado</button>
+      </section>
+
+      <section class="resultado" id="tela-falhou" hidden>
+        <div class="selo selo-erro"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg></div>
+        <div>
+          <h2 tabindex="-1">Não conseguimos abrir o chamado</h2>
+          <p id="falhou-texto"></p>
+        </div>
+        <button type="button" class="btn-principal btn-largo" id="btn-tentar">Tentar de novo</button>
+      </section>
+    </main>
+  </div>
+
+  <footer class="rodape">
+    <span class="rodape-grande">© {{ ano }} CISBAF - Canal de Combate ao Assédio e Discriminação | Todos os direitos reservados.</span>
+    <span class="rodape-simples">© {{ ano }} CISBAF | Todos os direitos reservados.</span>
+  </footer>
+</div>
+
+<template id="tpl-loc">
+  <div class="loc-selecionada" hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+    <div><span class="loc-pai"></span><span class="loc-nome"></span></div>
+    <button type="button" class="btn-trocar">Trocar</button>
+  </div>
+  <div class="loc-busca">
+    <div class="busca">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" autocomplete="off" placeholder="Digite a unidade, base ou setor">
+    </div>
+    <div class="loc-resultados" hidden>
+      <div class="loc-contagem"></div>
+      <div class="loc-lista"></div>
+    </div>
+    <div class="loc-nenhum" hidden>Nenhum local encontrado. Tente outro nome.</div>
+  </div>
+</template>
+
+{{ localizacoes|json_script:"dados-localizacoes" }}
+{{ submotivos|json_script:"dados-submotivos" }}
+{{ campos_login|json_script:"dados-campos-login" }}
+<script src="{% static 'js/chamado.js' %}"></script>
+</body>
 </html>

@@ -13,38 +13,51 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
+
+def _env_bool(nome, padrao=False):
+    valor = os.getenv(nome)
+    return padrao if valor is None else valor.strip().lower() in ("1", "true", "yes", "sim")
+
+
+def _env_lista(nome, padrao=""):
+    return [item.strip() for item in os.getenv(nome, padrao).split(",") if item.strip()]
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://chamadosti.cisbaf.org.br', 'https://chamadosti.cisbaf.org.br']
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost', 'http://chamadosti.cisbaf.org.br', 'https://chamadosti.cisbaf.org.br',
+] + _env_lista('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 X_FRAME_OPTIONS = 'ALLOWALL'
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-47ag9^3@parc$r62f%r3c+2+3-g@9ns#^aq0f-vca2$-r6xvce'
+DEBUG = _env_bool("DJANGO_DEBUG", False)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured("Defina DJANGO_SECRET_KEY no .env (ou DJANGO_DEBUG=true só para desenvolvimento).")
+    SECRET_KEY = "django-insecure-somente-para-desenvolvimento"
 
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+ALLOWED_HOSTS = _env_lista("DJANGO_ALLOWED_HOSTS", "*")
 
-ALLOWED_HOSTS = ["*"]
-# settings.py
+# GLPI (API REST) - tokens vêm do .env, nunca do código
+GLPI_API_URL = os.getenv("GLPI_API_URL", "")
+GLPI_APP_TOKEN = os.getenv("GLPI_APP_TOKEN", "")
+GLPI_USER_TOKEN = os.getenv("GLPI_USER_TOKEN", "")
+GLPI_TIMEOUT = int(os.getenv("GLPI_TIMEOUT", "20"))
+# Origem da requisição. Vazio = não envia (o GLPI usa o padrão). Se precisar: 9 (PortalChamado).
+GLPI_REQUESTTYPE_ID = int(os.getenv("GLPI_REQUESTTYPE_ID") or 0) or None
 
-# URL do Broker
-# Configurações adicionais do Celery
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_BACKEND = 'redis://redis-app-chamados:6379/0'  # ou 'redis://localhost:6379/0' para local
-CELERY_TIMEZONE = 'UTC'
-CELERY_RESULT_BACKEND = 'django-db'
-CELERY_BEAT_SCHEDULE = {
-    'task-name': {
-        'task': 'path.to.task',
-        'schedule': 60.0,  # Intervalo em segundos
-    },
-}
+# WhatsApp (notification-go)
+API_NOTIFICATION_URL = os.getenv("API_NOTIFICATION_URL", "")
+CONTACT_NOTIFICATION = os.getenv("CONTACT_NOTIFICATION", "")
+WHATSAPP_SINCRONO = _env_bool("WHATSAPP_SINCRONO", False)
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -54,12 +67,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_celery_results',
     'users',
+    'chamados',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -88,21 +102,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'app.wsgi.application'
 
-print("tem que ir???", os.getenv("MYSQL_HOST"))
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv("MYSQL_DATABASE"),
-        'USER': os.getenv("MYSQL_USER"),
-        'PASSWORD': os.getenv("MYSQL_PASSWORD"),
-        'HOST': os.getenv("MYSQL_HOST"),
-        'PORT': os.getenv("MYSQL_PORT"),
+if os.getenv("MYSQL_HOST"):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv("MYSQL_DATABASE"),
+            'USER': os.getenv("MYSQL_USER"),
+            'PASSWORD': os.getenv("MYSQL_PASSWORD"),
+            'HOST': os.getenv("MYSQL_HOST"),
+            'PORT': os.getenv("MYSQL_PORT"),
+        }
     }
-}
+else:
+    # Desenvolvimento/teste: SQLite (caminho configurável por SQLITE_PATH)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.getenv("SQLITE_PATH", BASE_DIR / 'db.sqlite3'),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -144,8 +165,28 @@ STATICFILES_DIRS = [
     BASE_DIR / 'templates/static'
 ]
 STATIC_ROOT = BASE_DIR / 'static'
+# Nomes com hash do conteúdo: depois de um deploy ninguém recebe JS/CSS velho do cache.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
+# Se faltar entrada no manifesto (ex.: rodando sem collectstatic), usa o nome sem hash em vez de dar erro.
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_USE_FINDERS = DEBUG
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {'simples': {'format': '%(asctime)s %(levelname)s %(name)s: %(message)s'}},
+    'handlers': {'console': {'class': 'logging.StreamHandler', 'formatter': 'simples'}},
+    'loggers': {
+        'chamados': {'handlers': ['console'], 'level': 'INFO'},
+        'helpers': {'handlers': ['console'], 'level': 'INFO'},
+    },
+}

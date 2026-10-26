@@ -1,59 +1,22 @@
-
 services:
   chamados-ti:
     container_name: chamadosti-app
     build: .
     ports:
-      - "${CHAMADOSTI_PORT}:8000"
-    depends_on:
-      - redis-chamadosti
-    restart: always
-    env_file:
-      - /etc/cisbaf-setup/envs/.env-chamadosti 
-    networks:
-      - network-chamadosti
-    
-  selenium-chamadosti:
-      container_name: selenium-chamadosti
-      image: selenium/standalone-chrome:latest
-      restart: always
-      ports:
-        - "4444:4444"
-      volumes:
-        - /dev/shm:/dev/shm
-      networks:
-        - network-chamadosti
-  worker-chamadosti:
-    build: .
-    command: celery -A app worker --loglevel=info
+      - "${CHAMADOSTI_BIND:-0.0.0.0}:${CHAMADOSTI_PORT:-8000}:8000"
     restart: always
     env_file:
       - .env
-    depends_on:
-      - redis-chamadosti
+    environment:
+      # Sem MYSQL_HOST no .env o app usa SQLite neste volume (ambiente de teste).
+      SQLITE_PATH: /data/db.sqlite3
+    volumes:
+      - chamadosti-dados:/data
     networks:
       - network-chamadosti
 
-  flower:
-    container_name: flower-chamadosti
-    build: .
-    command: celery -A app flower --port=5555
-    restart: always
-    ports:
-      - "5555:5555"
-    env_file:
-      - .env  
-    depends_on:
-      - redis-chamadosti
-    networks:
-      - network-chamadosti
-
-  redis-chamadosti:
-    container_name: redis-chamadosti
-    image: redis:latest
-    restart: always
-    networks:
-      - network-chamadosti
+volumes:
+  chamadosti-dados:
 
 networks:
   network-chamadosti:
