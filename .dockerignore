@@ -1,0 +1,9 @@
+.git
+.gitignore
+.venv
+dev
+.env
+**/__pycache__
+**/*.pyc
+src/static
+src/db.sqlite3
