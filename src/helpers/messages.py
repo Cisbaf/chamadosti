@@ -20,14 +20,26 @@ def para_atendido(numero, solicitante):
     return f"A TI abriu o chamado nº {numero} para você, a pedido de {solicitante}."
 
 
-def para_grupo(numero, dados, localizacao):
-    quem = f"aberto por {dados['nome']}"
+def para_grupo(numero, dados, localizacao, quantidade_anexos=0, link=""):
+    """Mesmo formato do chamadosTI antigo: uma linha com os campos separados por " | "."""
+    if dados["campos"]:
+        detalhe = " | ".join(f"{rotulo}: {valor}" for rotulo, valor in dados["campos"].items())
+    else:
+        detalhe = " ".join(dados["descricao"].split())
+    partes = [
+        f"Protocolo: #{numero}",
+        f"Solicitante: {dados['nome']}",
+        f"Unidade: {localizacao}",
+        f"Solicita: {motivo_completo(dados['motivo'], dados['sub_motivo'])}",
+    ]
+    if detalhe:
+        partes.append(f"Motivo: {detalhe}")
+    partes.append(f"Contato: {dados['celular']}")
     if dados["outra_pessoa"]:
-        quem += f" para {dados['outra_nome']}"
-    return (
-        f"*NOVO CHAMADO nº {numero}* · {motivo_completo(dados['motivo'], dados['sub_motivo'])}"
-        f" · {localizacao} · {quem}"
-    )
+        partes.append(f"Para: {dados['outra_nome']} ({dados['outra_celular']})")
+    partes.append(f"Anexos {quantidade_anexos}")
+    texto = "*NOVO CHAMADO!*\n" + " | ".join(partes)
+    return f"{texto}\nLink: {link}" if link else texto
 
 
 def anexos_nao_enviados(numero, nomes):

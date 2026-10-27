@@ -50,11 +50,18 @@ GLPI_API_URL = os.getenv("GLPI_API_URL", "")
 GLPI_APP_TOKEN = os.getenv("GLPI_APP_TOKEN", "")
 GLPI_USER_TOKEN = os.getenv("GLPI_USER_TOKEN", "")
 GLPI_TIMEOUT = int(os.getenv("GLPI_TIMEOUT", "20"))
+# Endereço do GLPI no navegador (link do chamado nas mensagens). Padrão: o da API sem /apirest.php.
+GLPI_URL = (os.getenv("GLPI_URL") or GLPI_API_URL.removesuffix("/apirest.php")).rstrip("/")
 # Origem da requisição. Vazio = não envia (o GLPI usa o padrão). Se precisar: 9 (PortalChamado).
 GLPI_REQUESTTYPE_ID = int(os.getenv("GLPI_REQUESTTYPE_ID") or 0) or None
 
-# WhatsApp (notification-go)
-API_NOTIFICATION_URL = os.getenv("API_NOTIFICATION_URL", "")
+# WhatsApp (Evolution API). Sem EVOLUTION_URL o envio fica desligado.
+EVOLUTION_URL = os.getenv("EVOLUTION_URL", "").rstrip("/")
+EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
+EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "")
+# segundos entre as mensagens da mesma abertura de chamado
+EVOLUTION_DELAY = float(os.getenv("EVOLUTION_DELAY") or 1.5)
+# JID do grupo da TI (...@g.us)
 CONTACT_NOTIFICATION = os.getenv("CONTACT_NOTIFICATION", "")
 WHATSAPP_SINCRONO = _env_bool("WHATSAPP_SINCRONO", False)
 

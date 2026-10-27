@@ -1,7 +1,9 @@
 from unittest import mock
 
+import requests
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 
+from helpers import messages, whatsapp
 from helpers.glpi_client import GlpiClient, GlpiErro, ResultadoAbertura
 from users.models import UserRequest
 
@@ -237,6 +239,12 @@ class ApiTest(TestCase):
         c = UserRequest.objects.get(number_applicant="21987654321")
         self.assertEqual((c.name_applicant, c.location_id), ("Maria Aparecida Souza", 33))
 
+    @override_settings(GLPI_URL="https://glpi.exemplo")
+    def test_grupo_recebe_o_link_do_chamado_no_glpi(self):
+        self.post(pedido())
+        grupo = self.disparar.call_args.args[0][1][1]
+        self.assertTrue(grupo.endswith("\nLink: https://glpi.exemplo/front/ticket.form.php?id=1234"))
+
     def test_outra_pessoa_avisa_as_duas_e_a_ti(self):
         r = self.post(pedido(outra_pessoa=True, outra_nome="Ana Lúcia", outra_celular="21977771020", outra_localizacao_id=59))
         self.assertEqual(r.status_code, 201)
@@ -443,3 +451,100 @@ class ClienteGlpiTest(SimpleTestCase):
         with self.assertRaises(GlpiErro) as ctx:
             GlpiClient("", "", "")
         self.assertEqual(ctx.exception.tipo, "config")
+
+
+@override_settings(
+    EVOLUTION_URL="http://evolution:8080", EVOLUTION_INSTANCE="chamadosti", EVOLUTION_API_KEY="chave-teste",
+    EVOLUTION_DELAY=0,
+)
+class WhatsappTest(SimpleTestCase):
+    def setUp(self):
+        patcher = mock.patch("helpers.whatsapp.requests.post")
+        self.post = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.post.return_value = mock.Mock(status_code=201)
+
+    def test_celular_vai_com_55_no_endereco_e_cabecalho_da_instancia(self):
+        self.assertTrue(whatsapp.enviar("21987654321", "oi"))
+        self.post.assert_called_once_with(
+            "http://evolution:8080/message/sendText/chamadosti",
+            headers={"apikey": "chave-teste"},
+            json={"number": "5521987654321", "text": "oi"},
+            timeout=(3, 8),
+        )
+
+    def test_grupo_segue_sem_alteracao(self):
+        self.assertTrue(whatsapp.enviar("12345-678@g.us", "oi", True))
+        self.assertEqual(self.post.call_args.kwargs["json"]["number"], "12345-678@g.us")
+
+    def test_qualquer_2xx_e_sucesso(self):
+        for status in (200, 201, 204):
+            self.post.return_value = mock.Mock(status_code=status)
+            self.assertTrue(whatsapp.enviar("21987654321", "oi"), status)
+
+    def test_erro_http_devolve_false_e_loga_sem_o_numero_completo(self):
+        corpo = {"error": "Bad Request", "response": {"message": [{"number": "5521987654321"}]}}
+        self.post.return_value = mock.Mock(status_code=400, json=lambda: corpo)
+        with self.assertLogs("helpers.whatsapp", "ERROR") as logs:
+            self.assertFalse(whatsapp.enviar("21987654321", "oi"))
+        saida = "\n".join(logs.output)
+        self.assertIn("***4321: HTTP 400 Bad Request", saida)
+        self.assertNotIn("21987654321", saida)
+
+    def test_timeout_nao_levanta(self):
+        self.post.side_effect = requests.Timeout()
+        with self.assertLogs("helpers.whatsapp", "ERROR") as logs:
+            self.assertFalse(whatsapp.enviar("21987654321", "oi"))
+        self.assertIn("Timeout", logs.output[0])
+
+    def test_sem_configuracao_nao_chama_a_api(self):
+        with override_settings(EVOLUTION_URL=""), self.assertLogs("helpers.whatsapp", "WARNING"):
+            self.assertFalse(whatsapp.enviar("21987654321", "oi"))
+        self.post.assert_not_called()
+
+    def test_pausa_entre_mensagens_e_uma_falha_nao_impede_as_outras(self):
+        self.post.side_effect = [requests.ConnectionError(), mock.Mock(status_code=201), mock.Mock(status_code=201)]
+        mensagens = [("21987654321", "a", False), ("21977771020", "b", False), ("grupo@g.us", "c", True)]
+        with mock.patch("helpers.whatsapp.time.sleep") as sleep, self.assertLogs("helpers.whatsapp", "ERROR"):
+            whatsapp._enviar_todas(mensagens)
+        self.assertEqual(self.post.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+
+class MensagemGrupoTest(SimpleTestCase):
+    def dados(self, **extra):
+        dados, erros = validacao.validar(pedido(**extra))
+        self.assertEqual(erros, {})
+        return dados
+
+    def test_formato_do_chamadosti_antigo(self):
+        texto = messages.para_grupo(1234, self.dados(), "CAXIAS > UPA SARAPUI", 1)
+        self.assertEqual(texto, (
+            "*NOVO CHAMADO!*\n"
+            "Protocolo: #1234 | Solicitante: Maria Aparecida Souza | Unidade: CAXIAS > UPA SARAPUI"
+            " | Solicita: Suporte Sistemas › Suporte SSO"
+            ' | Motivo: Desde ontem o SSO mostra "senha expirada" e não consigo entrar.'
+            " | Contato: 21987654321 | Anexos 1"
+        ))
+
+    def test_link_do_glpi_vai_em_linha_propria_no_fim(self):
+        texto = messages.para_grupo(7, self.dados(), "X", 0, "https://glpi.exemplo/front/ticket.form.php?id=7")
+        self.assertTrue(texto.endswith("| Anexos 0\nLink: https://glpi.exemplo/front/ticket.form.php?id=7"))
+        self.assertNotIn("Link:", messages.para_grupo(7, self.dados(), "X"))
+
+    def test_descricao_em_varias_linhas_vira_uma_so(self):
+        dados = self.dados(descricao="primeira linha\n\nsegunda   linha")
+        self.assertIn("| Motivo: primeira linha segunda linha | Contato:", messages.para_grupo(1, dados, "X"))
+
+    def test_outra_pessoa_aparece_depois_do_contato(self):
+        dados = self.dados(outra_pessoa=True, outra_nome="Ana Lúcia", outra_celular="21977771020",
+                           outra_localizacao_id=59, motivo="Suporte Computador", sub_motivo="")
+        texto = messages.para_grupo(1, dados, "CISBAF")
+        self.assertIn("| Solicita: Suporte Computador | Motivo:", texto)
+        self.assertTrue(texto.endswith("| Contato: 21987654321 | Para: Ana Lúcia (21977771020) | Anexos 0"))
+
+    def test_campos_de_criacao_de_login_ocupam_o_lugar_do_motivo(self):
+        dados = self.dados(motivo="Criação de Login", sub_motivo="Sistemas SSO", descricao="",
+                           campos={"Nome Completo": "Carlos Souza", "CPF": CPF_OK, "Cargo": "Médico"})
+        self.assertIn("| Motivo: Nome Completo: Carlos Souza | CPF: 52998224725 | Cargo: Médico | Contato:",
+                      messages.para_grupo(1, dados, "X"))

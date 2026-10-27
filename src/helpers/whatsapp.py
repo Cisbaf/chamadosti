@@ -1,10 +1,12 @@
-"""Envio de WhatsApp pelo serviço notification-go.
+"""Envio de WhatsApp pela Evolution API.
 
 Nunca levanta exceção: o chamado já foi aberto quando as mensagens saem, então
 uma falha aqui só vai para o log.
 """
 import logging
+import re
 import threading
+import time
 
 import requests
 from django.conf import settings
@@ -13,31 +15,52 @@ log = logging.getLogger(__name__)
 
 
 def _mascarar(numero):
-    return f"***{numero[-4:]}" if numero and len(numero) > 4 else "***"
+    numero = (numero or "").split("@")[0]
+    return f"***{numero[-4:]}" if len(numero) > 4 else "***"
+
+
+def _destino(numero, grupo):
+    """Grupo segue como veio (JID); celular de 11 dígitos ganha o 55 do Brasil."""
+    if grupo:
+        return numero
+    digitos = re.sub(r"\D", "", numero)
+    return f"55{digitos}" if len(digitos) == 11 else digitos
+
+
+def _motivo(resp):
+    # o corpo de erro da Evolution pode trazer o número completo; só o campo "error" é seguro
+    try:
+        corpo = resp.json()
+    except ValueError:
+        return ""
+    return str(corpo.get("error", "")) if isinstance(corpo, dict) else ""
 
 
 def enviar(numero, mensagem, grupo=False):
-    url = settings.API_NOTIFICATION_URL
-    if not url or not numero:
+    url, instancia, chave = settings.EVOLUTION_URL, settings.EVOLUTION_INSTANCE, settings.EVOLUTION_API_KEY
+    if not (url and instancia and chave) or not numero:
         log.warning("WhatsApp não configurado; mensagem para %s não enviada", _mascarar(numero))
         return False
     try:
         resp = requests.post(
-            url,
-            json={"to": numero, "message": mensagem, "is_group": grupo},
+            f"{url}/message/sendText/{instancia}",
+            headers={"apikey": chave},
+            json={"number": _destino(numero, grupo), "text": mensagem},
             timeout=(3, 8),
         )
     except requests.RequestException as exc:
-        log.warning("WhatsApp para %s falhou: %s", _mascarar(numero), type(exc).__name__)
+        log.error("WhatsApp para %s falhou: %s", _mascarar(numero), type(exc).__name__)
         return False
-    if resp.status_code != 200:
-        log.warning("WhatsApp para %s: HTTP %s", _mascarar(numero), resp.status_code)
+    if not 200 <= resp.status_code < 300:
+        log.error("WhatsApp para %s: HTTP %s %s", _mascarar(numero), resp.status_code, _motivo(resp))
         return False
     return True
 
 
 def _enviar_todas(mensagens):
-    for numero, texto, grupo in mensagens:
+    for i, (numero, texto, grupo) in enumerate(mensagens):
+        if i:
+            time.sleep(settings.EVOLUTION_DELAY)  # evita rajada na mesma abertura de chamado
         try:
             enviar(numero, texto, grupo)
         except Exception:  # noqa: BLE001 - nada aqui pode derrubar a resposta

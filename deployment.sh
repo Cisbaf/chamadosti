@@ -1,3 +1,4 @@
+. /home/daniel/servers/cisbaf/load-cisbaf-env
 git pull
 docker compose build
 docker compose stop

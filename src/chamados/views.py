@@ -78,11 +78,12 @@ def _guardar_cadastros(dados):
         _guardar_pessoa(dados["outra_nome"], dados["outra_celular"], dados["outra_localizacao_id"])
 
 
-def _avisar_abertura(ticket_id, dados, resultado, local, grupo):
+def _avisar_abertura(ticket_id, dados, resultado, local, grupo, quantidade_anexos=0):
     mensagens = [(dados["celular"], messages.para_solicitante(ticket_id), False)]
     if dados["outra_pessoa"]:
         mensagens.append((dados["outra_celular"], messages.para_atendido(ticket_id, dados["nome"]), False))
-    mensagens.append((grupo, messages.para_grupo(ticket_id, dados, local), True))
+    link = f"{settings.GLPI_URL}/front/ticket.form.php?id={ticket_id}" if settings.GLPI_URL else ""
+    mensagens.append((grupo, messages.para_grupo(ticket_id, dados, local, quantidade_anexos, link), True))
     if resultado.anexos_falhos:
         mensagens.append((grupo, messages.anexos_nao_enviados(ticket_id, resultado.anexos_falhos), True))
     whatsapp.disparar(mensagens)
@@ -133,7 +134,7 @@ def criar_chamado(request):
         envio.anexos_falhos = len(resultado.anexos_falhos)
         envio.save()
     _guardar_cadastros(dados)
-    _avisar_abertura(resultado.ticket_id, dados, resultado, local, settings.CONTACT_NOTIFICATION)
+    _avisar_abertura(resultado.ticket_id, dados, resultado, local, settings.CONTACT_NOTIFICATION, len(anexos))
     return _json(
         {"ok": True, "numero": resultado.ticket_id, "anexos_falhos": len(resultado.anexos_falhos)},
         status=201,

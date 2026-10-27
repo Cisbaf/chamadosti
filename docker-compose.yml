@@ -3,21 +3,21 @@ services:
     container_name: chamadosti-app
     build: .
     ports:
-      - "${CHAMADOSTI_BIND:-0.0.0.0}:${CHAMADOSTI_PORT:-8000}:8000"
+      - "${CHAMADOSTI_PORT}:8000"
     restart: always
     env_file:
       - .env
-    environment:
-      # Sem MYSQL_HOST no .env o app usa SQLite neste volume (ambiente de teste).
-      SQLITE_PATH: /data/db.sqlite3
-    volumes:
-      - chamadosti-dados:/data
     networks:
       - network-chamadosti
-
-volumes:
-  chamadosti-dados:
-
+      - cisbaf_network_apps  # rede do mysql-container do VPS
+    environment:
+      MYSQL_HOST: mysql-container
+      MYSQL_PORT: ${MYSQL_DB_PORT}
+      MYSQL_DATABASE: chamadosti
+      MYSQL_USER: chamadosti
+      MYSQL_PASSWORD: ${MYSQL_CHAMADOSTI_PASS}
 networks:
   network-chamadosti:
     driver: bridge
+  cisbaf_network_apps:
+    external: true
