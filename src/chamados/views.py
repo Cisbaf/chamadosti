@@ -86,7 +86,7 @@ def _avisar_abertura(ticket_id, dados, resultado, local, grupo, quantidade_anexo
     mensagens.append((grupo, messages.para_grupo(ticket_id, dados, local, quantidade_anexos, link), True))
     if resultado.anexos_falhos:
         mensagens.append((grupo, messages.anexos_nao_enviados(ticket_id, resultado.anexos_falhos), True))
-    whatsapp.disparar(mensagens)
+    whatsapp.disparar(mensagens, evento=f"chamado-{ticket_id}")
 
 
 @require_POST

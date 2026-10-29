@@ -10,6 +10,7 @@ services:
     networks:
       - network-chamadosti
       - cisbaf_network_apps  # rede do mysql-container do VPS
+      - notificacoes_net  # gateway de notificações (WhatsApp)
     environment:
       MYSQL_HOST: mysql-container
       MYSQL_PORT: ${MYSQL_DB_PORT}
@@ -20,4 +21,6 @@ networks:
   network-chamadosti:
     driver: bridge
   cisbaf_network_apps:
+    external: true
+  notificacoes_net:
     external: true

@@ -1,17 +1,20 @@
-"""Envio de WhatsApp pela Evolution API.
+"""Envio de WhatsApp pelo gateway de notificações (POST /v1/messages).
 
 Nunca levanta exceção: o chamado já foi aberto quando as mensagens saem, então
-uma falha aqui só vai para o log.
+uma falha aqui só vai para o log. O gateway enfileira e espaça os envios; aqui só
+se entrega a mensagem a ele.
 """
 import logging
 import re
-import threading
-import time
 
 import requests
 from django.conf import settings
 
 log = logging.getLogger(__name__)
+
+
+class _GatewayInacessivel(Exception):
+    """O gateway não respondeu (rede/timeout): não adianta tentar as demais mensagens."""
 
 
 def _mascarar(numero):
@@ -28,51 +31,63 @@ def _destino(numero, grupo):
 
 
 def _motivo(resp):
-    # o corpo de erro da Evolution pode trazer o número completo; só o campo "error" é seguro
+    # o gateway responde {"error": {"code": ..., "message": ...}}; só o código vai para o log
     try:
         corpo = resp.json()
     except ValueError:
         return ""
-    return str(corpo.get("error", "")) if isinstance(corpo, dict) else ""
+    erro = corpo.get("error") if isinstance(corpo, dict) else None
+    return str(erro.get("code", "")) if isinstance(erro, dict) else ""
 
 
-def enviar(numero, mensagem, grupo=False):
-    url, instancia, chave = settings.EVOLUTION_URL, settings.EVOLUTION_INSTANCE, settings.EVOLUTION_API_KEY
-    if not (url and instancia and chave) or not numero:
+def _enviar(numero, mensagem, grupo, chave):
+    """True se o gateway aceitou, False se recusou; levanta _GatewayInacessivel se não respondeu."""
+    url, api_key = settings.NOTIFY_URL, settings.NOTIFY_API_KEY
+    if not (url and api_key) or not numero:
         log.warning("WhatsApp não configurado; mensagem para %s não enviada", _mascarar(numero))
         return False
+    corpo = {"to": _destino(numero, grupo), "text": mensagem}
+    if chave:
+        corpo["idempotency_key"] = chave
     try:
         resp = requests.post(
-            f"{url}/message/sendText/{instancia}",
-            headers={"apikey": chave},
-            json={"number": _destino(numero, grupo), "text": mensagem},
+            f"{url}/v1/messages",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=corpo,
             timeout=(3, 8),
         )
     except requests.RequestException as exc:
         log.error("WhatsApp para %s falhou: %s", _mascarar(numero), type(exc).__name__)
-        return False
+        raise _GatewayInacessivel from exc
     if not 200 <= resp.status_code < 300:
         log.error("WhatsApp para %s: HTTP %s %s", _mascarar(numero), resp.status_code, _motivo(resp))
         return False
     return True
 
 
-def _enviar_todas(mensagens):
+def enviar(numero, mensagem, grupo=False, chave=None):
+    """chave: idempotency_key; repetir a mesma chave não duplica a mensagem no gateway."""
+    try:
+        return _enviar(numero, mensagem, grupo, chave)
+    except _GatewayInacessivel:
+        return False
+
+
+def _enviar_todas(mensagens, evento=None):
     for i, (numero, texto, grupo) in enumerate(mensagens):
-        if i:
-            time.sleep(settings.EVOLUTION_DELAY)  # evita rajada na mesma abertura de chamado
+        chave = f"{evento}-{i}" if evento else None
         try:
-            enviar(numero, texto, grupo)
+            _enviar(numero, texto, grupo, chave)
+        except _GatewayInacessivel:
+            log.error("Gateway de notificações inacessível; %s mensagem(ns) não enviada(s)", len(mensagens) - i - 1)
+            return
         except Exception:  # noqa: BLE001 - nada aqui pode derrubar a resposta
             log.exception("Erro inesperado enviando WhatsApp para %s", _mascarar(numero))
 
 
-def disparar(mensagens):
-    """mensagens: lista de (numero, texto, is_group). Sai em segundo plano."""
+def disparar(mensagens, evento=None):
+    """mensagens: lista de (numero, texto, is_group). evento: identifica o fato (ex.: "chamado-123")
+    e vira a idempotency_key de cada mensagem (evento-0, evento-1, ...)."""
     mensagens = [m for m in mensagens if m]
-    if not mensagens:
-        return
-    if settings.WHATSAPP_SINCRONO:
-        _enviar_todas(mensagens)
-        return
-    threading.Thread(target=_enviar_todas, args=(mensagens,), daemon=True).start()
+    if mensagens:
+        _enviar_todas(mensagens, evento)

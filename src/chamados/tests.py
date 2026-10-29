@@ -203,7 +203,7 @@ class DescricaoTest(SimpleTestCase):
         self.assertNotIn("Descrição:", c)
 
 
-@override_settings(WHATSAPP_SINCRONO=True, CONTACT_NOTIFICATION="grupo@g.us")
+@override_settings(CONTACT_NOTIFICATION="grupo@g.us")
 class ApiTest(TestCase):
     def setUp(self):
         self.client = Client(enforce_csrf_checks=False)
@@ -236,6 +236,8 @@ class ApiTest(TestCase):
         self.assertEqual(mensagens[0][0], "21987654321")
         self.assertIn("nº 1234", mensagens[0][1])
         self.assertEqual(mensagens[1][0], "grupo@g.us")
+        # o evento vira idempotency_key no gateway: retry do chamado não duplica a mensagem
+        self.assertEqual(self.disparar.call_args.kwargs["evento"], "chamado-1234")
         c = UserRequest.objects.get(number_applicant="21987654321")
         self.assertEqual((c.name_applicant, c.location_id), ("Maria Aparecida Souza", 33))
 
@@ -453,42 +455,44 @@ class ClienteGlpiTest(SimpleTestCase):
         self.assertEqual(ctx.exception.tipo, "config")
 
 
-@override_settings(
-    EVOLUTION_URL="http://evolution:8080", EVOLUTION_INSTANCE="chamadosti", EVOLUTION_API_KEY="chave-teste",
-    EVOLUTION_DELAY=0,
-)
+@override_settings(NOTIFY_URL="http://notificacoes-web:8000", NOTIFY_API_KEY="chave-teste")
 class WhatsappTest(SimpleTestCase):
     def setUp(self):
         patcher = mock.patch("helpers.whatsapp.requests.post")
         self.post = patcher.start()
         self.addCleanup(patcher.stop)
-        self.post.return_value = mock.Mock(status_code=201)
+        self.post.return_value = mock.Mock(status_code=202)
 
-    def test_celular_vai_com_55_no_endereco_e_cabecalho_da_instancia(self):
+    def test_celular_vai_com_55_e_chave_do_app_no_cabecalho(self):
         self.assertTrue(whatsapp.enviar("21987654321", "oi"))
         self.post.assert_called_once_with(
-            "http://evolution:8080/message/sendText/chamadosti",
-            headers={"apikey": "chave-teste"},
-            json={"number": "5521987654321", "text": "oi"},
+            "http://notificacoes-web:8000/v1/messages",
+            headers={"Authorization": "Bearer chave-teste"},
+            json={"to": "5521987654321", "text": "oi"},
             timeout=(3, 8),
         )
 
     def test_grupo_segue_sem_alteracao(self):
         self.assertTrue(whatsapp.enviar("12345-678@g.us", "oi", True))
-        self.assertEqual(self.post.call_args.kwargs["json"]["number"], "12345-678@g.us")
+        self.assertEqual(self.post.call_args.kwargs["json"]["to"], "12345-678@g.us")
+
+    def test_chave_de_idempotencia_vai_no_corpo(self):
+        whatsapp.enviar("21987654321", "oi", chave="chamado-1-0")
+        self.assertEqual(self.post.call_args.kwargs["json"]["idempotency_key"], "chamado-1-0")
 
     def test_qualquer_2xx_e_sucesso(self):
-        for status in (200, 201, 204):
+        # 202 = enfileirada; 200 = repetição com a mesma idempotency_key
+        for status in (200, 202):
             self.post.return_value = mock.Mock(status_code=status)
             self.assertTrue(whatsapp.enviar("21987654321", "oi"), status)
 
-    def test_erro_http_devolve_false_e_loga_sem_o_numero_completo(self):
-        corpo = {"error": "Bad Request", "response": {"message": [{"number": "5521987654321"}]}}
-        self.post.return_value = mock.Mock(status_code=400, json=lambda: corpo)
+    def test_erro_http_devolve_false_e_loga_so_o_codigo(self):
+        corpo = {"error": {"code": "limite_excedido", "message": "Limite de envios excedido."}}
+        self.post.return_value = mock.Mock(status_code=429, json=lambda: corpo)
         with self.assertLogs("helpers.whatsapp", "ERROR") as logs:
             self.assertFalse(whatsapp.enviar("21987654321", "oi"))
         saida = "\n".join(logs.output)
-        self.assertIn("***4321: HTTP 400 Bad Request", saida)
+        self.assertIn("***4321: HTTP 429 limite_excedido", saida)
         self.assertNotIn("21987654321", saida)
 
     def test_timeout_nao_levanta(self):
@@ -498,17 +502,40 @@ class WhatsappTest(SimpleTestCase):
         self.assertIn("Timeout", logs.output[0])
 
     def test_sem_configuracao_nao_chama_a_api(self):
-        with override_settings(EVOLUTION_URL=""), self.assertLogs("helpers.whatsapp", "WARNING"):
+        with override_settings(NOTIFY_URL=""), self.assertLogs("helpers.whatsapp", "WARNING"):
             self.assertFalse(whatsapp.enviar("21987654321", "oi"))
         self.post.assert_not_called()
 
-    def test_pausa_entre_mensagens_e_uma_falha_nao_impede_as_outras(self):
-        self.post.side_effect = [requests.ConnectionError(), mock.Mock(status_code=201), mock.Mock(status_code=201)]
+    def test_sem_chave_do_app_nao_chama_a_api(self):
+        with override_settings(NOTIFY_API_KEY=""), self.assertLogs("helpers.whatsapp", "WARNING"):
+            self.assertFalse(whatsapp.enviar("21987654321", "oi"))
+        self.post.assert_not_called()
+
+    def test_recusa_de_uma_mensagem_nao_impede_as_outras(self):
+        self.post.side_effect = [mock.Mock(status_code=429, json=lambda: {}), mock.Mock(status_code=202),
+                                 mock.Mock(status_code=202)]
         mensagens = [("21987654321", "a", False), ("21977771020", "b", False), ("grupo@g.us", "c", True)]
-        with mock.patch("helpers.whatsapp.time.sleep") as sleep, self.assertLogs("helpers.whatsapp", "ERROR"):
-            whatsapp._enviar_todas(mensagens)
+        with self.assertLogs("helpers.whatsapp", "ERROR"):
+            whatsapp.disparar(mensagens, evento="chamado-9")
         self.assertEqual(self.post.call_count, 3)
-        self.assertEqual(sleep.call_count, 2)
+        chaves = [c.kwargs["json"]["idempotency_key"] for c in self.post.call_args_list]
+        self.assertEqual(chaves, ["chamado-9-0", "chamado-9-1", "chamado-9-2"])
+
+    def test_gateway_fora_do_ar_para_no_primeiro_timeout_sem_levantar(self):
+        self.post.side_effect = requests.ConnectionError()
+        mensagens = [("21987654321", "a", False), ("21977771020", "b", False), ("grupo@g.us", "c", True)]
+        with self.assertLogs("helpers.whatsapp", "ERROR"):
+            whatsapp.disparar(mensagens)
+        self.assertEqual(self.post.call_count, 1)
+
+    def test_sem_evento_nao_manda_idempotency_key(self):
+        whatsapp.disparar([("21987654321", "a", False)])
+        self.assertNotIn("idempotency_key", self.post.call_args.kwargs["json"])
+
+    def test_lista_vazia_ou_com_none_nao_chama_a_api(self):
+        whatsapp.disparar([])
+        whatsapp.disparar([None])
+        self.post.assert_not_called()
 
 
 class MensagemGrupoTest(SimpleTestCase):
